@@ -1,8 +1,8 @@
 package com.project.bankissuer.service;
 
-import com.project.bankacquirer.dto.*;
-import com.project.bankacquirer.model.*;
-import com.project.bankacquirer.repository.CreditCardRepository;
+import com.project.bankissuer.dto.*;
+import com.project.bankissuer.model.*;
+import com.project.bankissuer.repository.CreditCardRepository;
 import org.hibernate.cfg.Environment;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;

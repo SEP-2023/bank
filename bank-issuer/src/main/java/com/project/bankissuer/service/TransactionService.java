@@ -1,9 +1,9 @@
 package com.project.bankissuer.service;
 
-import com.project.bankacquirer.dto.InitialRequestDto;
-import com.project.bankacquirer.model.Transaction;
-import com.project.bankacquirer.model.TransactionStatus;
-import com.project.bankacquirer.repository.TransactionRepository;
+import com.project.bankissuer.dto.InitialRequestDto;
+import com.project.bankissuer.model.Transaction;
+import com.project.bankissuer.model.TransactionStatus;
+import com.project.bankissuer.repository.TransactionRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 

@@ -1,6 +1,6 @@
 package com.project.bankissuer.service;
 
-import com.project.bankacquirer.repository.ClientRepository;
+import com.project.bankissuer.repository.ClientRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 

@@ -1,6 +1,6 @@
 package com.project.bankissuer.repository;
 
-import com.project.bankacquirer.model.Merchant;
+import com.project.bankissuer.model.Merchant;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface MerchantRepository extends JpaRepository<Merchant, Long> {

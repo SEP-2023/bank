@@ -1,7 +1,7 @@
 package com.project.bankissuer.service;
 
-import com.project.bankacquirer.model.Merchant;
-import com.project.bankacquirer.repository.MerchantRepository;
+import com.project.bankissuer.model.Merchant;
+import com.project.bankissuer.repository.MerchantRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
