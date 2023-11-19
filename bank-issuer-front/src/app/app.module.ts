@@ -7,18 +7,23 @@ import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { NavbarComponent } from './components/navbar/navbar.component';
 import { CardFormComponent } from './components/card-form/card-form.component';
 import { PaymentPageComponent } from './pages/payment-page/payment-page.component';
+import {FormsModule} from "@angular/forms";
+import { NumericDirective } from './components/directives/numeric.directive';
 
 @NgModule({
   declarations: [
     AppComponent,
     NavbarComponent,
     CardFormComponent,
-    PaymentPageComponent
+    PaymentPageComponent,
+    NumericDirective,
+    NumericDirective
   ],
   imports: [
     BrowserModule,
     AppRoutingModule,
-    BrowserAnimationsModule
+    BrowserAnimationsModule,
+    FormsModule
   ],
   providers: [],
   bootstrap: [AppComponent]

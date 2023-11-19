@@ -1,5 +1,5 @@
 import { Component } from '@angular/core';
-import {PaymentRequestDto} from '../../dto/payment-request-dto';
+import {PaymentRequestDto} from "../../dto/payment-request-dto";
 
 @Component({
   selector: 'app-card-form',
@@ -15,5 +15,4 @@ export class CardFormComponent {
     this.cardInfo.expirationYear =  this.expirationDate.split('/')[1];
     console.log(this.cardInfo);
   }
-
 }

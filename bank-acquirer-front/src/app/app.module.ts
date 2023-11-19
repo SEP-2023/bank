@@ -3,14 +3,26 @@ import { BrowserModule } from '@angular/platform-browser';
 
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
+import {NavbarComponent} from "./components/navbar/navbar.component";
+import {PaymentPageComponent} from "./pages/payment-page/payment-page.component";
+import {BrowserAnimationsModule} from "@angular/platform-browser/animations";
+import {CardFormComponent} from "./components/card-form/card-form.component";
+import {NumericDirective} from "./components/directives/numeric.directive";
+import {FormsModule} from "@angular/forms";
 
 @NgModule({
   declarations: [
-    AppComponent
+    AppComponent,
+    NavbarComponent,
+    CardFormComponent,
+    PaymentPageComponent,
+    NumericDirective
   ],
   imports: [
     BrowserModule,
-    AppRoutingModule
+    AppRoutingModule,
+    BrowserAnimationsModule,
+    FormsModule
   ],
   providers: [],
   bootstrap: [AppComponent]
