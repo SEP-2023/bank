@@ -35,6 +35,7 @@ public class PaymentService {
 
     // koraci 1/2
     public PaymentUrlResponseDto getPaymentUrl(InitialRequestDto dto){
+        System.out.println(dto.getMerchantPassword());
         Client merchant = merchantService.findMerchant(dto.getMerchantId(), dto.getMerchantPassword());
         if(merchant == null){
             // exception
@@ -148,5 +149,9 @@ public class PaymentService {
                 creditCard.getCardholderName().equals(dto.getCardholderName()) &&
                 creditCard.getExpirationYear().equals(dto.getExpirationYear()) &&
                 creditCard.getExpirationMonth().equals(dto.getExpirationMonth());
+    }
+
+    public boolean processPaymentIssuer(PaymentRequestDto dto) {
+        return false;
     }
 }

@@ -20,8 +20,4 @@ public class BankController {
         return new ResponseEntity<>(bankService.processAcquirerRequest(dto), HttpStatus.OK);
     }
 
-    @PostMapping("/processIssuerPayment")
-    public ResponseEntity<?> processIssuerPayment(IssuerRequestDto dto){
-        return new ResponseEntity<>(bankService.processIssuerPayment(dto), HttpStatus.OK);
-    }
 }
