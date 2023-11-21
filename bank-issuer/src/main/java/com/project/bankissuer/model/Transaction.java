@@ -1,18 +1,16 @@
 package com.project.bankissuer.model;
 
-import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 
+import javax.persistence.*;
 import java.time.LocalDateTime;
 
 @Entity
 @Getter
 @Setter
 @NoArgsConstructor
-@RequiredArgsConstructor
 @Table(name="transactions")
 public class Transaction {
     @Id
@@ -21,7 +19,7 @@ public class Transaction {
     private Long id;
 
     @ManyToOne(fetch = FetchType.EAGER, cascade = CascadeType.ALL)
-    @JoinColumn(name = "account")
+    @JoinColumn(name = "acquirer")
     private Account acquirer;
 
     @Column(name = "amount")

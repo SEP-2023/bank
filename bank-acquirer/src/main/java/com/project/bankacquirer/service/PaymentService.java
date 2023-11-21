@@ -72,6 +72,10 @@ public class PaymentService {
                         Account acquirer = transaction.getAcquirer();
                         accountService.transferFunds(acquirer, transaction.getAmount());
                         transaction.setStatus(TransactionStatus.SUCCESSFUL);
+                        String acquirerOrderId = "randomNumberDuzine10";
+                        LocalDateTime acquirerTimestamp = LocalDateTime.now();
+                        transaction.setAcquirerOrderId(acquirerOrderId);
+                        transaction.setAcquirerTimestamp(acquirerTimestamp);
                         transactionService.save(transaction);
                     } else {
                         // nema dovoljno sredstava
@@ -87,7 +91,11 @@ public class PaymentService {
         } else {
             // ako issuer nije iz iste banke
             // ako ne postoji - generisi ACQUIRER_ORDER_ID i ACQUIRER_TIMESTAMP i salji na pcc zahtjev zajedno s podacima o kartici
-            PccResponseDto response = createPccPaymentRequest(dto);
+            String acquirerOrderId = "randomNumberDuzine10";
+            LocalDateTime acquirerTimestamp = LocalDateTime.now();
+            PccResponseDto response = createPccPaymentRequest(dto, acquirerOrderId, acquirerTimestamp);
+            transaction.setAcquirerOrderId(acquirerOrderId);
+            transaction.setAcquirerTimestamp(acquirerTimestamp);
             if(response == null){
                 transaction.setStatus(TransactionStatus.FAILED);
                 transactionService.save(transaction);
@@ -124,9 +132,8 @@ public class PaymentService {
         return response.getBody();
     }
 
-    private PccResponseDto createPccPaymentRequest(PaymentRequestDto dto) {
-        String acquirerOrderId = "randomNumberDuzine10";
-        LocalDateTime acquirerTimestamp = LocalDateTime.now();
+    private PccResponseDto createPccPaymentRequest(PaymentRequestDto dto, String acquirerOrderId, LocalDateTime acquirerTimestamp) {
+
         PccRequestDto request = new PccRequestDto();
         request.setPaymentId(dto.getPaymentId());
         request.setAcquirerTimestamp(acquirerTimestamp);

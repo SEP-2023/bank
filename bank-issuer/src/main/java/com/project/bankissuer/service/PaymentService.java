@@ -3,7 +3,6 @@ package com.project.bankissuer.service;
 import com.project.bankissuer.dto.*;
 import com.project.bankissuer.model.*;
 import com.project.bankissuer.repository.CreditCardRepository;
-import org.hibernate.cfg.Environment;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -29,18 +28,20 @@ public class PaymentService {
     @Autowired
     private AccountService accountService;
 
-    private final String appUrl = Environment.getProperties().getProperty("app-url");
-    private final String cardPaymentUrl = Environment.getProperties().getProperty("card-payment-url");
-    private final String pccUrl = Environment.getProperties().getProperty("pcc-url");
+    private final String appUrl = "http://localhost:4202/";
+    private final String pccUrl = "http://localhost:8901/";
+
+    private final String pspUrl = "http://localhost:8086/";
 
     // koraci 1/2
     public PaymentUrlResponseDto getPaymentUrl(InitialRequestDto dto){
+        System.out.println(dto.getMerchantPassword());
         Client merchant = merchantService.findMerchant(dto.getMerchantId(), dto.getMerchantPassword());
         if(merchant == null){
             // exception
             return null;
         }
-        Transaction t = transactionService.initiateTransaction(dto);
+        Transaction t = transactionService.initiateTransaction(dto, merchant.getAccount());
         PaymentUrlResponseDto response = new PaymentUrlResponseDto();
         response.setPaymentUrl(createPaymentUrl(t.getId().toString()));
         response.setPaymentId(t.getId().toString());
@@ -48,17 +49,16 @@ public class PaymentService {
     }
 
     public String createPaymentUrl(String id){
-        return appUrl + cardPaymentUrl + id;
+        return appUrl + id;
     }
 
-
     // korak 3
-    public boolean processPayment(PaymentRequestDto dto){
+    public String processPayment(PaymentRequestDto dto){
         CreditCard creditCard = creditCardRepository.findByPan(dto.getPan());
         Transaction transaction = transactionService.findById(Long.parseLong(dto.getPaymentId()));
         if (transaction == null){
             // vrati gresku
-            return false;
+            return "Greska";
         }
 
         // ako je issuer iz iste banke
@@ -72,6 +72,10 @@ public class PaymentService {
                         Account acquirer = transaction.getAcquirer();
                         accountService.transferFunds(acquirer, transaction.getAmount());
                         transaction.setStatus(TransactionStatus.SUCCESSFUL);
+                        String acquirerOrderId = "randomNumberDuzine10";
+                        LocalDateTime acquirerTimestamp = LocalDateTime.now();
+                        transaction.setAcquirerOrderId(acquirerOrderId);
+                        transaction.setAcquirerTimestamp(acquirerTimestamp);
                         transactionService.save(transaction);
                     } else {
                         // nema dovoljno sredstava
@@ -87,7 +91,11 @@ public class PaymentService {
         } else {
             // ako issuer nije iz iste banke
             // ako ne postoji - generisi ACQUIRER_ORDER_ID i ACQUIRER_TIMESTAMP i salji na pcc zahtjev zajedno s podacima o kartici
-            PccResponseDto response = createPccPaymentRequest(dto);
+            String acquirerOrderId = "randomNumberDuzine10";
+            LocalDateTime acquirerTimestamp = LocalDateTime.now();
+            PccResponseDto response = createPccPaymentRequest(dto, acquirerOrderId, acquirerTimestamp);
+            transaction.setAcquirerOrderId(acquirerOrderId);
+            transaction.setAcquirerTimestamp(acquirerTimestamp);
             if(response == null){
                 transaction.setStatus(TransactionStatus.FAILED);
                 transactionService.save(transaction);
@@ -102,13 +110,30 @@ public class PaymentService {
             // ...
         }
 
-        // salje se rezultat transakcije na psp i onda se vraca response - nece biti boolean
-        return true;
+        return completeTransaction(transaction);
     }
 
-    private PccResponseDto createPccPaymentRequest(PaymentRequestDto dto) {
-        String acquirerOrderId = "randomNumberDuzine10";
-        LocalDateTime acquirerTimestamp = LocalDateTime.now();
+    private String completeTransaction(Transaction transaction) {
+        PspRequestDto request = new PspRequestDto();
+        request.setPaymentId(String.valueOf(transaction.getId()));
+        request.setAcquirerTimestamp(transaction.getAcquirerTimestamp());
+        request.setAcquirerOrderId(transaction.getAcquirerOrderId());
+        request.setTransactionStatus(String.valueOf(transaction.getStatus()));
+        request.setMerchantOrderId(transaction.getMerchantOrderId());
+
+        ResponseEntity<String> response = WebClient.builder()
+                .build().post()
+                .uri(pspUrl + "completeTransaction")
+                .body(BodyInserters.fromValue(request))
+                .accept(MediaType.APPLICATION_JSON)
+                .retrieve()
+                .toEntity(String.class)
+                .block();
+        return response.getBody();
+    }
+
+    private PccResponseDto createPccPaymentRequest(PaymentRequestDto dto, String acquirerOrderId, LocalDateTime acquirerTimestamp) {
+
         PccRequestDto request = new PccRequestDto();
         request.setPaymentId(dto.getPaymentId());
         request.setAcquirerTimestamp(acquirerTimestamp);
@@ -148,5 +173,9 @@ public class PaymentService {
                 creditCard.getCardholderName().equals(dto.getCardholderName()) &&
                 creditCard.getExpirationYear().equals(dto.getExpirationYear()) &&
                 creditCard.getExpirationMonth().equals(dto.getExpirationMonth());
+    }
+
+    public boolean processPaymentIssuer(PaymentRequestDto dto) {
+        return false;
     }
 }

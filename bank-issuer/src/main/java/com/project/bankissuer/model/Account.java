@@ -1,18 +1,17 @@
 package com.project.bankissuer.model;
 
-import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 
+import javax.persistence.*;
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
 @Getter
 @Setter
 @NoArgsConstructor
-@RequiredArgsConstructor
 @Table(name="accounts")
 public class Account {
     @Id
@@ -27,14 +26,13 @@ public class Account {
     private Double balance;
 
     @OneToOne
-    @JoinColumn(name = "client")
-    private Client client;
+    @JoinColumn(name = "user_id")
+    private User user;
 
-    @OneToOne
-    @JoinColumn(name = "creditCard")
+    @OneToOne(mappedBy = "account")
     private CreditCard creditCard;
 
     @OneToMany(mappedBy = "acquirer")
-    private List<Transaction> transactions;
+    private List<Transaction> transactions = new ArrayList<>();
 
 }

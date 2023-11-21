@@ -9,6 +9,7 @@ import { CardFormComponent } from './components/card-form/card-form.component';
 import { PaymentPageComponent } from './pages/payment-page/payment-page.component';
 import {FormsModule} from "@angular/forms";
 import { NumericDirective } from './components/directives/numeric.directive';
+import {HttpClientModule} from "@angular/common/http";
 
 @NgModule({
   declarations: [
@@ -23,7 +24,8 @@ import { NumericDirective } from './components/directives/numeric.directive';
     BrowserModule,
     AppRoutingModule,
     BrowserAnimationsModule,
-    FormsModule
+    FormsModule,
+    HttpClientModule
   ],
   providers: [],
   bootstrap: [AppComponent]

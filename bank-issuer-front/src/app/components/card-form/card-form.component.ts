@@ -1,5 +1,7 @@
 import { Component } from '@angular/core';
 import {PaymentRequestDto} from '../../dto/payment-request-dto';
+import {ActivatedRoute} from "@angular/router";
+import {PaymentService} from "../../services/payment.service";
 
 @Component({
   selector: 'app-card-form',
@@ -10,10 +12,30 @@ export class CardFormComponent {
   cardInfo:PaymentRequestDto = new PaymentRequestDto();
   expirationDate:string = '';
 
+  id: string = "";
+
+  constructor(private route: ActivatedRoute, private paymentService: PaymentService) {}
+
+  ngOnInit(): void {
+    this.route.params.subscribe(params => {
+      this.id = params['id'];
+      console.log(this.id)
+    });
+  }
+
+
   pay(){
-    this.cardInfo.expirationMonth =  this.expirationDate.split('/')[0];
-    this.cardInfo.expirationYear =  this.expirationDate.split('/')[1];
+    this.cardInfo.expirationMonth =  this.expirationDate.substring(0, 2);
+    this.cardInfo.expirationYear =  this.expirationDate.substring(2);
+    this.cardInfo.paymentId = this.id;
     console.log(this.cardInfo);
+    this.paymentService.pay(this.cardInfo).subscribe({next: response => {
+        console.log("Responseee" + response)
+        window.location.href = response.status
+      }, error: err => {
+        console.log(err)
+      }})
+
   }
 
 }

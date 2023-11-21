@@ -4,7 +4,7 @@
 
       <label for="cardNum">Card number</label>
       <div class="form-group input-group">
-        <input type="text" class="form-control" appNumericOnly name="cardNumber" [(ngModel)]="cardInfo.pan" id="cardNum" placeholder="1111-1111-1111-1111" aria-describedby="basic-addon2">
+        <input type="text" class="form-control" appNumericOnly name="cardNumber" [(ngModel)]="cardInfo.pan" id="cardNum" placeholder="1111-1111-1111-1111" aria-describedby="basic-addon2" [ngModelOptions]="{standalone: true}">
         <div class="input-group-append">
           <span class="input-group-text" id="basic-addon2"><i class="fa-solid fa-credit-card input-group-text"></i></span>
         </div>
@@ -14,12 +14,12 @@
     <div class="row pb-3">
       <div class="form-group col-6">
         <label for="expirationDate">Expiration date</label>
-        <input type="text" class="form-control" appNumericOnly size="6" minlength="5" maxlength="5" name="expirationDate" [(ngModel)]="expirationDate" id="expirationDate" placeholder="MM/YY">
+        <input type="text" class="form-control" appNumericOnly size="6" minlength="5" maxlength="5" name="expirationDate" [(ngModel)]="expirationDate" id="expirationDate" placeholder="MM/YY" [ngModelOptions]="{standalone: true}">
       </div>
 
       <div class="form-group col-6">
         <label for="cvc">CV code</label>
-        <input type="text" class="form-control" name="cvc" appNumericOnly [(ngModel)]="cardInfo.securityCode" maxlength="3" id="cvc" placeholder="CVC">
+        <input type="text" class="form-control" name="cvc" appNumericOnly [(ngModel)]="cardInfo.securityCode" maxlength="3" id="cvc" placeholder="CVC" [ngModelOptions]="{standalone: true}">
       </div>
 
 
@@ -28,7 +28,7 @@
     <div class="row">
       <div class="form-group">
         <label for="cardOwner">Card owner</label>
-        <input type="text" class="form-control" name="name" [(ngModel)]="cardInfo.cardholderName" id="cardOwner" placeholder="Pera Peric">
+        <input type="text" class="form-control" name="name" [(ngModel)]="cardInfo.cardholderName" id="cardOwner" placeholder="Pera Peric" [ngModelOptions]="{standalone: true}">
       </div>
     </div>
 
