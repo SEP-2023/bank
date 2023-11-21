@@ -29,7 +29,7 @@ public class PaymentService {
     private AccountService accountService;
 
     private final String appUrl = "http://localhost:4202/";
-    private final String pccUrl = "http://localhost:8901/";
+    private final String pccUrl = "http://localhost:8090/";
 
     private final String pspUrl = "http://localhost:8086/";
 
@@ -93,7 +93,7 @@ public class PaymentService {
             // ako ne postoji - generisi ACQUIRER_ORDER_ID i ACQUIRER_TIMESTAMP i salji na pcc zahtjev zajedno s podacima o kartici
             String acquirerOrderId = "randomNumberDuzine10";
             LocalDateTime acquirerTimestamp = LocalDateTime.now();
-            PccResponseDto response = createPccPaymentRequest(dto, acquirerOrderId, acquirerTimestamp);
+            PccResponseDto response = createPccPaymentRequest(dto, acquirerOrderId, acquirerTimestamp, transaction.getAmount());
             transaction.setAcquirerOrderId(acquirerOrderId);
             transaction.setAcquirerTimestamp(acquirerTimestamp);
             if(response == null){
@@ -132,7 +132,7 @@ public class PaymentService {
         return response.getBody();
     }
 
-    private PccResponseDto createPccPaymentRequest(PaymentRequestDto dto, String acquirerOrderId, LocalDateTime acquirerTimestamp) {
+    private PccResponseDto createPccPaymentRequest(PaymentRequestDto dto, String acquirerOrderId, LocalDateTime acquirerTimestamp, Double amount) {
 
         PccRequestDto request = new PccRequestDto();
         request.setPaymentId(dto.getPaymentId());
@@ -143,7 +143,7 @@ public class PaymentService {
         request.setExpirationYear(dto.getExpirationYear());
         request.setCardholderName(dto.getCardholderName());
         request.setSecurityCode(dto.getSecurityCode());
-
+        request.setAmount(amount);
         return sendPccRequest(request);
     }
 
@@ -151,7 +151,7 @@ public class PaymentService {
         try {
             ResponseEntity<PccResponseDto> response = WebClient.builder()
                     .build().post()
-                    .uri(pccUrl)
+                    .uri(pccUrl + "processAcquirerRequest")
                     .body(BodyInserters.fromValue(request))
                     .accept(MediaType.APPLICATION_JSON)
                     .retrieve()
@@ -175,7 +175,52 @@ public class PaymentService {
                 creditCard.getExpirationMonth().equals(dto.getExpirationMonth());
     }
 
-    public boolean processPaymentIssuer(PaymentRequestDto dto) {
-        return false;
+    public PccResponseDto processPaymentIssuer(PaymentRequestDto dto) {
+        Transaction t = new Transaction();
+        t.setStatus(TransactionStatus.INITIATED);
+        t.setAmount(dto.getAmount());
+        t.setAcquirerOrderId(dto.getAcquirerOrderId());
+        t.setAcquirerTimestamp(dto.getAcquirerTimestamp());
+        // ...
+        transactionService.save(t);
+        CreditCard creditCard = creditCardRepository.findByPan(dto.getPan());
+        PccResponseDto response = new PccResponseDto();
+        response.setAcquirerOrderId(dto.getAcquirerOrderId());
+        response.setAcquirerTimestamp(dto.getAcquirerTimestamp());
+
+        if(creditCard != null){
+            if(validateCreditCard(creditCard, dto)){
+                if(t.getStatus().equals(TransactionStatus.INITIATED)) {
+                    if(accountService.reserveFunds(creditCard.getAccount(), t.getAmount())) {
+                        t.setStatus(TransactionStatus.RESERVED_FUNDS);
+                        transactionService.save(t);
+                        String issuerOrderId = "randomNumberDuzine10";
+                        LocalDateTime issuerTimestamp = LocalDateTime.now();
+
+                        t.setAcquirerOrderId(dto.getAcquirerOrderId());
+                        t.setAcquirerTimestamp(dto.getAcquirerTimestamp());
+                        t.setIssuerOrderId(issuerOrderId);
+                        t.setIssuerTimestamp(issuerTimestamp);
+                        transactionService.save(t);
+                        response.setIssuerTimestamp(issuerTimestamp);
+                        response.setIssuerOrderId(issuerOrderId);
+                        response.setTransactionStatus("RESERVED_FUNDS");
+
+                    } else {
+                        // nema dovoljno sredstava
+                        t.setStatus(TransactionStatus.FAILED);
+                        response.setTransactionStatus("FAILED");
+                        transactionService.save(t);
+                    }
+                }
+            } else {
+                t.setStatus(TransactionStatus.FAILED);
+                transactionService.save(t);
+                response.setTransactionStatus("FAILED");
+                // vrati nesto
+            }
+        }
+
+        return response;
     }
 }

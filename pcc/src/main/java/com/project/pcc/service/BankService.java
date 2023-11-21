@@ -4,6 +4,8 @@ import com.project.pcc.dto.AcquirerRequestDto;
 import com.project.pcc.dto.IssuerRequestDto;
 import com.project.pcc.dto.ResponseDto;
 import com.project.pcc.model.Bank;
+import com.project.pcc.model.Transaction;
+import com.project.pcc.model.TransactionStatus;
 import com.project.pcc.repository.BankRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -19,15 +21,27 @@ public class BankService {
     @Autowired
     private BankRepository bankRepository;
 
+    @Autowired
+    private TransactionService transactionService;
+
     public ResponseDto processAcquirerRequest(AcquirerRequestDto dto) {
         // provjerava zahtjev i prosljedjuje drugoj banci na osnovu pana
-        String pan = dto.getPan().substring(0, 5);
+        String pan = dto.getPan().substring(0, 4);
+
         Bank bank = bankRepository.findBankByBin(pan);
-        // ako ne postoji, vrati gresku acquireru
+
+        // TODO ako ne postoji, vrati gresku acquireru
 
         ResponseDto response = redirectToIssuer(dto, bank);
-        // preuzmi status transakcije i postavi ga
-        // vrati odgovor issuera
+        Transaction t = new Transaction();
+        t.setAcquirerTimestamp(dto.getAcquirerTimestamp());
+        t.setAcquirerOrderId(dto.getAcquirerOrderId());
+        t.setPaymentId(dto.getPaymentId());
+        t.setAmount(dto.getAmount());
+        t.setPaymentId(dto.getPaymentId());
+        t.setStatus(TransactionStatus.fromString(response.getTransactionStatus()));
+        transactionService.save(t);
+
         return response;
     }
 

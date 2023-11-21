@@ -15,4 +15,5 @@ public class AcquirerRequestDto {
     private String paymentId;
     private String acquirerOrderId;
     private LocalDateTime acquirerTimestamp;
+    private Double amount;
 }

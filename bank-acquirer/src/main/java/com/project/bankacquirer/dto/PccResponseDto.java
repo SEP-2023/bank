@@ -9,7 +9,6 @@ import java.time.LocalDateTime;
 public class PccResponseDto {
 
     private String transactionStatus;
-
     private String acquirerOrderId;
     private LocalDateTime acquirerTimestamp;
     private String issuerOrderId;

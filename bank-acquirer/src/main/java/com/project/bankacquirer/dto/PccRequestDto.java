@@ -15,5 +15,6 @@ public class PccRequestDto {
     private String paymentId;
     private String acquirerOrderId;
     private LocalDateTime acquirerTimestamp;
+    private Double amount;
 
 }

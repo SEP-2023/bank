@@ -1,6 +1,6 @@
 package com.project.pcc.model;
 
-import jakarta.persistence.*;
+import javax.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.RequiredArgsConstructor;
@@ -12,7 +12,6 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 @NoArgsConstructor
-@RequiredArgsConstructor
 @Table(name="transactions")
 public class Transaction {
 
@@ -24,7 +23,9 @@ public class Transaction {
     @Column(name = "status")
     private TransactionStatus status;
 
+    @Column(name = "paymentId")
     private String paymentId;
+
     @Column(name = "acquirerOrderId")
     private String acquirerOrderId;
 
@@ -36,6 +37,9 @@ public class Transaction {
 
     @Column(name = "issuerTimestamp")
     private LocalDateTime issuerTimestamp;
+
+    @Column(name = "amount")
+    private Double amount;
 
 
 }
