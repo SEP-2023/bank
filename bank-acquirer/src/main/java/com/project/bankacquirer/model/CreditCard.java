@@ -33,7 +33,7 @@ public class CreditCard {
     @Column(name = "expirationYear")
     private String expirationYear;
 
-    @OneToOne
+    @OneToOne(cascade = CascadeType.ALL)
     @JoinColumn(name = "account")
     private Account account;
 

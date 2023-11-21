@@ -17,7 +17,7 @@ public class Transaction {
     private Long id;
 
     @ManyToOne(fetch = FetchType.EAGER, cascade = CascadeType.ALL)
-    @JoinColumn(name = "account")
+    @JoinColumn(name = "acquirer")
     private Account acquirer;
 
     @Column(name = "amount")

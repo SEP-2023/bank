@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -25,14 +26,13 @@ public class Account {
     private Double balance;
 
     @OneToOne
-    @JoinColumn(name = "client")
-    private Client client;
+    @JoinColumn(name = "user_id")
+    private User user;
 
-    @OneToOne
-    @JoinColumn(name = "creditCard")
+    @OneToOne(mappedBy = "account")
     private CreditCard creditCard;
 
     @OneToMany(mappedBy = "acquirer")
-    private List<Transaction> transactions;
+    private List<Transaction> transactions = new ArrayList<>();
 
 }

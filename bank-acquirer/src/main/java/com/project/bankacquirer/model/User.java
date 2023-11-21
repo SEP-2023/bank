@@ -27,4 +27,8 @@ public class User {
     @Column(name = "password")
     private String password;
 
+    @OneToOne
+    @JoinColumn(name = "account")
+    private Account account;
+
 }
