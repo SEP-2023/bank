@@ -3,13 +3,14 @@ import { BrowserModule } from '@angular/platform-browser';
 
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
-import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { NavbarComponent } from './components/navbar/navbar.component';
-import { CardFormComponent } from './components/card-form/card-form.component';
 import { PaymentPageComponent } from './pages/payment-page/payment-page.component';
-import {FormsModule} from "@angular/forms";
+import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+import { CardFormComponent } from './components/card-form/card-form.component';
 import { NumericDirective } from './components/directives/numeric.directive';
-import {HttpClientModule} from "@angular/common/http";
+import { FormsModule } from '@angular/forms';
+import { HttpClientModule } from '@angular/common/http';
+import { QrPaymentComponent } from './pages/qr-payment/qr-payment.component';
 
 @NgModule({
   declarations: [
@@ -18,16 +19,16 @@ import {HttpClientModule} from "@angular/common/http";
     CardFormComponent,
     PaymentPageComponent,
     NumericDirective,
-    NumericDirective
+    QrPaymentComponent,
   ],
   imports: [
     BrowserModule,
     AppRoutingModule,
     BrowserAnimationsModule,
     FormsModule,
-    HttpClientModule
+    HttpClientModule,
   ],
   providers: [],
-  bootstrap: [AppComponent]
+  bootstrap: [AppComponent],
 })
-export class AppModule { }
+export class AppModule {}

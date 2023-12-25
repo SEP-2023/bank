@@ -1,5 +1,6 @@
 package com.project.bankacquirer.service;
 
+import com.google.zxing.NotFoundException;
 import com.project.bankacquirer.dto.*;
 import com.project.bankacquirer.model.*;
 import com.project.bankacquirer.repository.CreditCardRepository;
@@ -11,7 +12,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.client.WebClient;
 
+import java.io.IOException;
 import java.time.LocalDateTime;
+import java.util.Random;
 
 @Service
 public class PaymentService {
@@ -28,87 +31,106 @@ public class PaymentService {
     @Autowired
     private AccountService accountService;
 
-    private final String appUrl = "http://localhost:4203/";
-    private final String pccUrl = "http://localhost:8090/";
+    @Autowired
+    private QRCodeService qrCodeService;
 
+    private final String appUrlQrCode = "http://localhost:4203/qr/";
+    private final String appUrlCard = "http://localhost:4203/card/";
+    private final String pccUrl = "http://localhost:8090/";
     private final String pspUrl = "http://localhost:8086/";
 
     // koraci 1/2
     public PaymentUrlResponseDto getPaymentUrl(InitialRequestDto dto){
-        System.out.println(dto.getMerchantPassword());
-        Client merchant = merchantService.findMerchant(dto.getMerchantId(), dto.getMerchantPassword());
+        User merchant = merchantService.findMerchant(dto.getMerchantId(), dto.getMerchantPassword());
         if(merchant == null){
             // exception
             return null;
         }
         Transaction t = transactionService.initiateTransaction(dto, merchant.getAccount());
         PaymentUrlResponseDto response = new PaymentUrlResponseDto();
-        response.setPaymentUrl(createPaymentUrl(t.getId().toString()));
+        response.setPaymentUrl(createPaymentUrl(t.getId().toString(), dto.isQr()));
         response.setPaymentId(t.getId().toString());
         return response;
     }
 
-    public String createPaymentUrl(String id){
-        return appUrl + id;
+    public String createPaymentUrl(String id, boolean qr){
+        if(qr){
+            return appUrlQrCode + id;
+        }
+        return appUrlCard + id;
     }
 
     // korak 3
-    public String processPayment(PaymentRequestDto dto){
+    public String processPayment(PaymentRequestDto dto) throws NotFoundException, IOException {
         CreditCard creditCard = creditCardRepository.findByPan(dto.getPan());
         Transaction transaction = transactionService.findById(Long.parseLong(dto.getPaymentId()));
         if (transaction == null){
-            // vrati gresku
             return "Greska";
         }
 
-        // ako je issuer iz iste banke
-        if(creditCard != null){
-            if(validateCreditCard(creditCard, dto)){
-                if(transaction.getStatus().equals(TransactionStatus.INITIATED)) {
-                    if(accountService.reserveFunds(creditCard.getAccount(), transaction.getAmount())) {
-                        transaction.setStatus(TransactionStatus.RESERVED_FUNDS);
-                        transactionService.save(transaction);
+        if(dto.getQr() != null && !dto.getQr().isEmpty() && (!qrCodeService.validateQRCode(dto.getQr(), transaction))){
+            return "Greska";
+        }
 
-                        Account acquirer = transaction.getAcquirer();
-                        accountService.transferFunds(acquirer, transaction.getAmount());
-                        transaction.setStatus(TransactionStatus.SUCCESSFUL);
-                        String acquirerOrderId = "randomNumberDuzine10";
-                        LocalDateTime acquirerTimestamp = LocalDateTime.now();
-                        transaction.setAcquirerOrderId(acquirerOrderId);
-                        transaction.setAcquirerTimestamp(acquirerTimestamp);
-                        transactionService.save(transaction);
-                    } else {
-                        // nema dovoljno sredstava
-                        transaction.setStatus(TransactionStatus.FAILED);
-                        transactionService.save(transaction);
-                    }
-                }
+        if (creditCard != null) {
+            return processPaymentForSameBank(transaction, creditCard, dto);
+        } else {
+            return processPaymentForDifferentBank(transaction, dto);
+        }
+    }
+
+    private String processPaymentForDifferentBank(Transaction transaction, PaymentRequestDto dto) {
+        String acquirerOrderId = generateRandomNumber(10);
+        LocalDateTime acquirerTimestamp = LocalDateTime.now();
+        PccResponseDto response = createPccPaymentRequest(dto, acquirerOrderId, acquirerTimestamp, transaction.getAmount());
+        transaction.setAcquirerOrderId(response.getAcquirerOrderId());
+        transaction.setAcquirerTimestamp(response.getAcquirerTimestamp());
+        transaction.setStatus(TransactionStatus.fromString(response.getTransactionStatus()));
+        transaction.setIssuerOrderId(response.getIssuerOrderId());
+        transaction.setIssuerTimestamp(response.getIssuerTimestamp());
+        transactionService.save(transaction);
+        return completeTransaction(transaction);
+    }
+
+    private String processPaymentForSameBank(Transaction transaction, CreditCard creditCard, PaymentRequestDto dto) {
+        if (validateCreditCard(creditCard, dto)) {
+            if (transaction.getStatus().equals(TransactionStatus.INITIATED)) {
+                return processPaymentInitiated(transaction, creditCard);
             } else {
-                transaction.setStatus(TransactionStatus.FAILED);
-                transactionService.save(transaction);
-                // vrati nesto
+                return completeTransaction(transaction);
             }
         } else {
-            // ako issuer nije iz iste banke
-            // ako ne postoji - generisi ACQUIRER_ORDER_ID i ACQUIRER_TIMESTAMP i salji na pcc zahtjev zajedno s podacima o kartici
-            String acquirerOrderId = "randomNumberDuzine10";
-            LocalDateTime acquirerTimestamp = LocalDateTime.now();
-            PccResponseDto response = createPccPaymentRequest(dto, acquirerOrderId, acquirerTimestamp, transaction.getAmount());
-            transaction.setAcquirerOrderId(acquirerOrderId);
-            transaction.setAcquirerTimestamp(acquirerTimestamp);
-            if(response == null){
-                transaction.setStatus(TransactionStatus.FAILED);
-                transactionService.save(transaction);
-            } else {
-                transaction.setStatus(TransactionStatus.fromString(response.getTransactionStatus()));
-                transaction.setAcquirerOrderId(response.getAcquirerOrderId());
-                transaction.setAcquirerTimestamp(response.getAcquirerTimestamp());
-                transaction.setIssuerOrderId(response.getIssuerOrderId());
-                transaction.setIssuerTimestamp(response.getIssuerTimestamp());
-                transactionService.save(transaction);
-            }
-            // ...
+            return handleFailedTransaction(transaction);
         }
+    }
+
+    private String handleFailedTransaction(Transaction transaction) {
+        transaction.setStatus(TransactionStatus.FAILED);
+        transactionService.save(transaction);
+        return completeTransaction(transaction);
+    }
+
+    private String processPaymentInitiated(Transaction transaction, CreditCard creditCard) {
+        if (accountService.reserveFunds(creditCard.getAccount(), transaction.getAmount())) {
+            return processSuccessfulTransaction(transaction);
+        } else {
+            return handleFailedTransaction(transaction);
+        }
+    }
+
+    private String processSuccessfulTransaction(Transaction transaction) {
+        transaction.setStatus(TransactionStatus.RESERVED_FUNDS);
+        transactionService.save(transaction);
+
+        Account acquirer = transaction.getAcquirer();
+        accountService.transferFunds(acquirer, transaction.getAmount());
+
+        transaction.setStatus(TransactionStatus.SUCCESSFUL);
+        String acquirerOrderId = "randomNumberDuzine10";
+        LocalDateTime acquirerTimestamp = LocalDateTime.now();
+        transaction.setAcquirerOrderId(acquirerOrderId);
+        transaction.setAcquirerTimestamp(acquirerTimestamp);
+        transactionService.save(transaction);
 
         return completeTransaction(transaction);
     }
@@ -129,11 +151,13 @@ public class PaymentService {
                 .retrieve()
                 .toEntity(String.class)
                 .block();
-        return response.getBody();
+        if (response != null) {
+            return response.getBody();
+        }
+        return "error";
     }
 
     private PccResponseDto createPccPaymentRequest(PaymentRequestDto dto, String acquirerOrderId, LocalDateTime acquirerTimestamp, Double amount) {
-
         PccRequestDto request = new PccRequestDto();
         request.setPaymentId(dto.getPaymentId());
         request.setAcquirerTimestamp(acquirerTimestamp);
@@ -176,50 +200,60 @@ public class PaymentService {
     }
 
     public PccResponseDto processPaymentIssuer(PaymentRequestDto dto) {
-        Transaction t = new Transaction();
-        t.setStatus(TransactionStatus.INITIATED);
-        t.setAmount(dto.getAmount());
-        t.setAcquirerOrderId(dto.getAcquirerOrderId());
-        t.setAcquirerTimestamp(dto.getAcquirerTimestamp());
-        // ...
+        Transaction t = initializeTransaction(dto);
         transactionService.save(t);
+
         CreditCard creditCard = creditCardRepository.findByPan(dto.getPan());
         PccResponseDto response = new PccResponseDto();
         response.setAcquirerOrderId(dto.getAcquirerOrderId());
         response.setAcquirerTimestamp(dto.getAcquirerTimestamp());
 
-        if(creditCard != null){
-            if(validateCreditCard(creditCard, dto)){
-                if(t.getStatus().equals(TransactionStatus.INITIATED)) {
-                    if(accountService.reserveFunds(creditCard.getAccount(), t.getAmount())) {
-                        t.setStatus(TransactionStatus.RESERVED_FUNDS);
-                        transactionService.save(t);
-                        String issuerOrderId = "randomNumberDuzine10";
-                        LocalDateTime issuerTimestamp = LocalDateTime.now();
+        if(creditCard != null && validateCreditCard(creditCard, dto) && t.getStatus().equals(TransactionStatus.INITIATED)){
+            if(accountService.reserveFunds(creditCard.getAccount(), t.getAmount())) {
+                t.setStatus(TransactionStatus.RESERVED_FUNDS);
+                transactionService.save(t);
+                String issuerOrderId = generateRandomNumber(10);
+                LocalDateTime issuerTimestamp = LocalDateTime.now();
 
-                        t.setAcquirerOrderId(dto.getAcquirerOrderId());
-                        t.setAcquirerTimestamp(dto.getAcquirerTimestamp());
-                        t.setIssuerOrderId(issuerOrderId);
-                        t.setIssuerTimestamp(issuerTimestamp);
-                        transactionService.save(t);
-                        response.setIssuerTimestamp(issuerTimestamp);
-                        response.setIssuerOrderId(issuerOrderId);
-                        response.setTransactionStatus("RESERVED_FUNDS");
+                t.setAcquirerOrderId(dto.getAcquirerOrderId());
+                t.setAcquirerTimestamp(dto.getAcquirerTimestamp());
+                t.setIssuerOrderId(issuerOrderId);
+                t.setIssuerTimestamp(issuerTimestamp);
+                transactionService.save(t);
 
-                    } else {
-                        // nema dovoljno sredstava
-                        t.setStatus(TransactionStatus.FAILED);
-                        response.setTransactionStatus("FAILED");
-                        transactionService.save(t);
-                    }
-                }
+                response.setIssuerTimestamp(issuerTimestamp);
+                response.setIssuerOrderId(issuerOrderId);
+                response.setTransactionStatus("RESERVED_FUNDS");
+
             } else {
+                // nema dovoljno sredstava
                 t.setStatus(TransactionStatus.FAILED);
                 transactionService.save(t);
                 response.setTransactionStatus("FAILED");
-                // vrati nesto
             }
+        } else {
+            // nevalidna kartica
+            t.setStatus(TransactionStatus.FAILED);
+            transactionService.save(t);
+            response.setTransactionStatus("FAILED");
         }
-
         return response;
-    }}
+    }
+
+    private Transaction initializeTransaction(PaymentRequestDto dto) {
+        Transaction transaction = new Transaction();
+        transaction.setStatus(TransactionStatus.INITIATED);
+        transaction.setAmount(dto.getAmount());
+        transaction.setAcquirerOrderId(dto.getAcquirerOrderId());
+        transaction.setAcquirerTimestamp(dto.getAcquirerTimestamp());
+        return transaction;
+    }
+
+    private String generateRandomNumber(int digits){
+        long min = (long) Math.pow(10, digits - 1);
+        long max = (long) Math.pow(10, digits) - 1;
+
+        Random random = new Random();
+        return String.valueOf(min + random.nextInt((int) (max - min + 1)));
+    }
+}

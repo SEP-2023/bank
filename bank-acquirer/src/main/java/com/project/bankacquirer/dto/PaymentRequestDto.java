@@ -16,4 +16,7 @@ public class PaymentRequestDto {
     private Double amount;
     private String acquirerOrderId;
     private LocalDateTime acquirerTimestamp;
+
+    private String qr;
+
 }

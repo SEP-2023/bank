@@ -15,4 +15,6 @@ public class InitialRequestDto {
     private String failedUrl;
     private String errorUrl;
 
+    private boolean qr;
+
 }

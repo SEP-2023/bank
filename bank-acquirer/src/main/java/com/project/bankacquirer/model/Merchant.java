@@ -11,7 +11,7 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @Table(name="merchants")
-public class Merchant extends Client {
+public class Merchant extends User {
 
     @Column(name = "merchantId")
     private String merchantId;

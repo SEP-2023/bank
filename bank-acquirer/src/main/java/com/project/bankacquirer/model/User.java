@@ -31,4 +31,7 @@ public class User {
     @JoinColumn(name = "account")
     private Account account;
 
+    @Column(name = "name")
+    private String name;
+
 }

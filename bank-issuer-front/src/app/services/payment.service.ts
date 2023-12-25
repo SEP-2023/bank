@@ -7,7 +7,7 @@ import {PaymentRequestDto} from "../dto/payment-request-dto";
 })
 export class PaymentService {
 
-  url: string = "http://localhost:8087";
+  url: string = "http://localhost:8088";
 
   constructor(private _http: HttpClient) {
   }

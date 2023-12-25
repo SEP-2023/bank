@@ -1,5 +1,6 @@
 package com.project.bankacquirer.controller;
 
+import com.google.zxing.NotFoundException;
 import com.project.bankacquirer.dto.InitialRequestDto;
 import com.project.bankacquirer.dto.PaymentRequestDto;
 import com.project.bankacquirer.service.PaymentService;
@@ -9,6 +10,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.io.IOException;
 
 @RestController
 public class PaymentController {
@@ -22,7 +25,7 @@ public class PaymentController {
     }
 
     @PostMapping("/processPayment")
-    public ResponseEntity<?> processPayment(@RequestBody PaymentRequestDto dto){
+    public ResponseEntity<?> processPayment(@RequestBody PaymentRequestDto dto) throws NotFoundException, IOException {
         return new ResponseEntity<>(paymentService.processPayment(dto), HttpStatus.OK);
     }
 
