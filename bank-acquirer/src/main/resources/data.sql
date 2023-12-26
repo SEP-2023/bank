@@ -13,5 +13,5 @@ VALUES (nextval('user_seq'), 'prodavac', 'pass', 'Klijent 1', 2);
 
 
 INSERT INTO credit_cards (pan, security_code, cardholder_name, expiration_month, expiration_year, account)
-VALUES ('1111222233334444', '111', 'Ivana Jankovic', '07', '27', 2);
+VALUES ('C6B25FFAC5D2C50F41AF3AC4D97D07D95FD4F2D5F9FCEF98DC709E5741060508', '111', 'Ivana Jankovic', '07', '27', 2);
 

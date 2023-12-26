@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.io.IOException;
+import java.security.NoSuchAlgorithmException;
 
 @RestController
 public class PaymentController {
@@ -25,12 +26,12 @@ public class PaymentController {
     }
 
     @PostMapping("/processPayment")
-    public ResponseEntity<?> processPayment(@RequestBody PaymentRequestDto dto) throws NotFoundException, IOException {
+    public ResponseEntity<?> processPayment(@RequestBody PaymentRequestDto dto) throws NotFoundException, IOException, NoSuchAlgorithmException {
         return new ResponseEntity<>(paymentService.processPayment(dto), HttpStatus.OK);
     }
 
     @PostMapping("/processPaymentIssuer")
-    public ResponseEntity<?> processPaymentIssuer(@RequestBody PaymentRequestDto dto){
+    public ResponseEntity<?> processPaymentIssuer(@RequestBody PaymentRequestDto dto) throws NoSuchAlgorithmException {
         return new ResponseEntity<>(paymentService.processPaymentIssuer(dto), HttpStatus.OK);
     }
 }

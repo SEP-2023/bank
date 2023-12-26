@@ -13,6 +13,8 @@ import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import java.io.IOException;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
 import java.util.Random;
 
@@ -64,8 +66,10 @@ public class PaymentService {
     }
 
     // korak 3
-    public String processPayment(PaymentRequestDto dto) throws NotFoundException, IOException {
-        CreditCard creditCard = creditCardRepository.findByPan(dto.getPan());
+    public String processPayment(PaymentRequestDto dto) throws NotFoundException, IOException, NoSuchAlgorithmException {
+        System.out.println("Hashed1 intesa: " + hashPAN(dto.getPan()));
+
+        CreditCard creditCard = creditCardRepository.findByPan(hashPAN(dto.getPan()));
         Transaction transaction = transactionService.findById(Long.parseLong(dto.getPaymentId()));
         if (transaction == null){
             return "Greska";
@@ -202,11 +206,12 @@ public class PaymentService {
                 creditCard.getExpirationMonth().equals(dto.getExpirationMonth());
     }
 
-    public PccResponseDto processPaymentIssuer(PaymentRequestDto dto) {
+    public PccResponseDto processPaymentIssuer(PaymentRequestDto dto) throws NoSuchAlgorithmException {
         Transaction t = initializeTransaction(dto);
         transactionService.save(t);
 
-        CreditCard creditCard = creditCardRepository.findByPan(dto.getPan());
+        System.out.println("Hashed2 intesa: " + hashPAN(dto.getPan()));
+        CreditCard creditCard = creditCardRepository.findByPan(hashPAN(dto.getPan()));
         PccResponseDto response = new PccResponseDto();
         response.setAcquirerOrderId(dto.getAcquirerOrderId());
         response.setAcquirerTimestamp(dto.getAcquirerTimestamp());
@@ -258,5 +263,19 @@ public class PaymentService {
 
         Random random = new Random();
         return String.valueOf(min + random.nextInt((int) (max - min + 1)));
+    }
+
+    public static String hashPAN(String panNumber) throws NoSuchAlgorithmException {
+        byte[] panBytes = panNumber.getBytes();
+
+        MessageDigest messageDigest = MessageDigest.getInstance("SHA-256");
+        byte[] hashedBytes = messageDigest.digest(panBytes);
+
+        StringBuilder stringBuilder = new StringBuilder();
+        for (byte hashedByte : hashedBytes) {
+            stringBuilder.append(String.format("%02X", hashedByte));
+        }
+
+        return stringBuilder.toString();
     }
 }

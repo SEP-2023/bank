@@ -12,5 +12,5 @@ INSERT INTO clients (id, username, password, name, account)
 VALUES (nextval('user_seq'), 'klijent', 'pass', 'Klijent 1', 2);
 
 INSERT INTO credit_cards (pan, security_code, cardholder_name, expiration_month, expiration_year, account)
-VALUES ('2222333344445555', '111', 'Ivana Jankovic', '07', '27', 2);
+VALUES ('03A9FDE0AC9346605E3E3B671E93E48EEA2EE316175C62572D8CA97A0DC05973', '111', 'Ivana Jankovic', '07', '27', 2);
 
