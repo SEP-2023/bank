@@ -5,7 +5,8 @@ import { HttpClient } from '@angular/common/http';
   providedIn: 'root',
 })
 export class QrCodeService {
-  url: string = 'http://localhost:8087';
+  // url: string = "http://localhost:8087";
+  url: string = 'http://89.216.102.70:8087';
 
   constructor(private _http: HttpClient) {}
 
