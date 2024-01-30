@@ -6,7 +6,7 @@ VALUES (nextval('user_seq'), 'prodavac', 'pass', 'nekiId', 'pass', 1, 'Prodavac 
 
 
 INSERT INTO accounts (number, balance, user_id)
-VALUES ('87654321', '10000', 2);
+VALUES ('87654321', '200', 2);
 
 INSERT INTO clients (id, username, password, name, account)
 VALUES (nextval('user_seq'), 'prodavac', 'pass', 'Klijent 1', 2);
