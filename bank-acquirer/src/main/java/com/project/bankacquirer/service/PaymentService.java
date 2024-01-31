@@ -13,6 +13,7 @@ import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.text.MessageFormat;
@@ -212,7 +213,8 @@ public class PaymentService {
     }
 
     private boolean validateCreditCard(CreditCard creditCard, PaymentRequestDto dto) {
-        return  creditCard.getSecurityCode().equals(dto.getSecurityCode()) &&
+        String cvv = getCvvFromData(creditCard.getPan(), creditCard.getExpirationMonth(), creditCard.getExpirationYear());
+        return  cvv.equals(dto.getSecurityCode()) &&
                 creditCard.getCardholderName().equals(dto.getCardholderName()) &&
                 creditCard.getExpirationYear().equals(dto.getExpirationYear()) &&
                 creditCard.getExpirationMonth().equals(dto.getExpirationMonth());
@@ -290,5 +292,24 @@ public class PaymentService {
         }
 
         return stringBuilder.toString();
+    }
+
+    public static String getCvvFromData(String pan, String expMonth, String expYear){
+        String expirationDate = expMonth + expYear;
+
+        try {
+            String dataToHash = pan + expirationDate;
+
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hashBytes = digest.digest(dataToHash.getBytes(StandardCharsets.UTF_8));
+
+            int cvv = Math.abs(hashBytes[0] % 1000);
+            String formattedCVV = String.format("%03d", cvv);
+            System.out.println("Generated CVV value: " + formattedCVV);
+            return formattedCVV;
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+        }
+        return "";
     }
 }
