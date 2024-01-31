@@ -1,4 +1,4 @@
-const host = '192.168.0.15';
+const host = 'localhost';
 
 export const environment = {
   production: false,

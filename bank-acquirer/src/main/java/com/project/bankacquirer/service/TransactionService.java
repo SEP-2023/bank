@@ -6,6 +6,9 @@ import com.project.bankacquirer.repository.TransactionRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
+import java.util.Random;
+
 @Service
 public class TransactionService {
 
@@ -23,8 +26,20 @@ public class TransactionService {
         t.setFailedUrl(dto.getFailedUrl());
         t.setErrorUrl(dto.getErrorUrl());
         t.setAcquirer(account);
-        // ...
+        String acquirerOrderId = generateRandomNumber(10);
+        LocalDateTime acquirerTimestamp = LocalDateTime.now();
+        t.setAcquirerOrderId(acquirerOrderId);
+        t.setAcquirerTimestamp(acquirerTimestamp);
+
         return transactionRepository.save(t);
+    }
+
+    private String generateRandomNumber(int digits){
+        long min = (long) Math.pow(10, digits - 1);
+        long max = (long) Math.pow(10, digits) - 1;
+
+        Random random = new Random();
+        return String.valueOf(min + random.nextInt((int) (max - min + 1)));
     }
 
     public Transaction findById(Long transactionId) {

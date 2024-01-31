@@ -140,10 +140,10 @@ public class PaymentService {
         accountService.transferFunds(acquirer, transaction.getAmount());
 
         transaction.setStatus(TransactionStatus.SUCCESSFUL);
-        String acquirerOrderId = "randomNumberDuzine10";
-        LocalDateTime acquirerTimestamp = LocalDateTime.now();
-        transaction.setAcquirerOrderId(acquirerOrderId);
-        transaction.setAcquirerTimestamp(acquirerTimestamp);
+        String issuerOrderId = generateRandomNumber(10);
+        LocalDateTime issuerTimestamp = LocalDateTime.now();
+        transaction.setIssuerOrderId(issuerOrderId);
+        transaction.setIssuerTimestamp(issuerTimestamp);
         transactionService.save(transaction);
 
         logger.success(MessageFormat.format("Transaction with ID {0} successful", transaction.getId()));
