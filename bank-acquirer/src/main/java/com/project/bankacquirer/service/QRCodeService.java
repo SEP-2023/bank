@@ -20,6 +20,8 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.text.MessageFormat;
+
 import org.json.JSONObject;
 
 @Service
@@ -28,12 +30,15 @@ public class QRCodeService {
     @Autowired
     TransactionService transactionService;
 
+    private LoggerService logger = new LoggerService(this.getClass());
+
     public QRCodeDto generateQRCode(String id) {
         String paymentInfo = generatePaymentInfo(id);
         ByteArrayOutputStream stream = QRCode.from(paymentInfo).to(ImageType.PNG).stream();
         byte[] base64bytes = Base64.encodeBase64(stream.toByteArray());
         QRCodeDto dto = new QRCodeDto();
         dto.setQr(new String(base64bytes, StandardCharsets.UTF_8));
+        logger.info(MessageFormat.format("Generated qr code with ID {0}", id));
         return dto;
     }
 

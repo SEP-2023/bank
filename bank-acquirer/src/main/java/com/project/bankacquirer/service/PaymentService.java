@@ -15,6 +15,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 import java.io.IOException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.text.MessageFormat;
 import java.time.LocalDateTime;
 import java.util.Random;
 
@@ -36,22 +37,27 @@ public class PaymentService {
     @Autowired
     private QRCodeService qrCodeService;
 
-    private final String appUrlQrCode = "http://localhost:4203/qr/";
-    private final String appUrlCard = "http://localhost:4203/card/";
-    private final String pccUrl = "http://localhost:8090/";
-    private final String pspUrl = "http://localhost:8086/";
+    private LoggerService logger = new LoggerService(this.getClass());
+    private final String host = "http://localhost";
+
+    private final String appUrlQrCode = host + ":4203/qr/";
+    private final String appUrlCard = host + ":4203/card/";
+    private final String pccUrl = host + ":8090/";
+    private final String pspUrl = host + ":8086/";
 
     // koraci 1/2
     public PaymentUrlResponseDto getPaymentUrl(InitialRequestDto dto){
         User merchant = merchantService.findMerchant(dto.getMerchantId(), dto.getMerchantPassword());
         if(merchant == null){
-            // exception
+            logger.error(MessageFormat.format("Merchant with ID {0} not found", dto.getMerchantId()));
             return null;
         }
+        logger.info("Initiating transaction...");
         Transaction t = transactionService.initiateTransaction(dto, merchant.getAccount());
         PaymentUrlResponseDto response = new PaymentUrlResponseDto();
         response.setPaymentUrl(createPaymentUrl(t.getId().toString(), dto.isQr()));
         response.setPaymentId(t.getId().toString());
+        logger.success(MessageFormat.format("Successfully created paymentUrl for transaction with ID {0}", t.getId()));
         return response;
     }
 
@@ -69,10 +75,12 @@ public class PaymentService {
         CreditCard creditCard = creditCardRepository.findByPan(hashPAN(dto.getPan()));
         Transaction transaction = transactionService.findById(Long.parseLong(dto.getPaymentId()));
         if (transaction == null){
+            logger.error(MessageFormat.format("Error while processing payment with ID {0} - invalid id", dto.getPaymentId()));
             return "Greska";
         }
 
         if(dto.getQr() != null && !dto.getQr().isEmpty() && (!qrCodeService.validateQRCode(dto.getQr(), transaction))){
+            logger.error(MessageFormat.format("Invalid qr code for payment with ID {0}", dto.getPaymentId()));
             return "Greska";
         }
 
@@ -97,6 +105,7 @@ public class PaymentService {
     }
 
     private String processPaymentForSameBank(Transaction transaction, CreditCard creditCard, PaymentRequestDto dto) {
+        logger.info(MessageFormat.format("Processing payment (the same bank) for transaction with ID {0}", dto.getPaymentId()));
         if (validateCreditCard(creditCard, dto)) {
             if (transaction.getStatus().equals(TransactionStatus.INITIATED)) {
                 return processPaymentInitiated(transaction, creditCard);
@@ -109,6 +118,7 @@ public class PaymentService {
     }
 
     private String handleFailedTransaction(Transaction transaction) {
+        logger.error(MessageFormat.format("Transaction with ID {0} failed", transaction.getId()));
         transaction.setStatus(TransactionStatus.FAILED);
         transactionService.save(transaction);
         return completeTransaction(transaction);
@@ -136,6 +146,7 @@ public class PaymentService {
         transaction.setAcquirerTimestamp(acquirerTimestamp);
         transactionService.save(transaction);
 
+        logger.success(MessageFormat.format("Transaction with ID {0} successful", transaction.getId()));
         return completeTransaction(transaction);
     }
 
@@ -146,6 +157,8 @@ public class PaymentService {
         request.setAcquirerOrderId(transaction.getAcquirerOrderId());
         request.setTransactionStatus(String.valueOf(transaction.getStatus()));
         request.setMerchantOrderId(transaction.getMerchantOrderId());
+
+        logger.info(MessageFormat.format("Sending request to psp to complete transaction with ID {0}", transaction.getId()));
 
         ResponseEntity<String> response = WebClient.builder()
                 .build().post()
@@ -176,6 +189,8 @@ public class PaymentService {
     }
 
     private PccResponseDto sendPccRequest(PccRequestDto request) {
+        logger.info(MessageFormat.format("Sending request to pcc to process transaction with ID {0}", request.getPaymentId()));
+
         try {
             ResponseEntity<PccResponseDto> response = WebClient.builder()
                     .build().post()
@@ -231,17 +246,18 @@ public class PaymentService {
                 response.setTransactionStatus("RESERVED_FUNDS");
 
             } else {
-                // nema dovoljno sredstava
+                logger.error(MessageFormat.format("Transaction failed - insufficient funds - ID {0}", t.getId()));
                 t.setStatus(TransactionStatus.FAILED);
                 transactionService.save(t);
                 response.setTransactionStatus("FAILED");
             }
         } else {
-            // nevalidna kartica
+            logger.error(MessageFormat.format("Transaction failed - invalid card info - ID {0}", t.getId()));
             t.setStatus(TransactionStatus.FAILED);
             transactionService.save(t);
             response.setTransactionStatus("FAILED");
         }
+        logger.success(MessageFormat.format("Successful transaction with ID {0}", t.getId()));
         return response;
     }
 
